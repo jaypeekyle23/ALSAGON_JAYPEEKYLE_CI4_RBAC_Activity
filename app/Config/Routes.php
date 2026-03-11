@@ -39,10 +39,12 @@ $routes->group('menu-management', static function ($routes) {
     $routes->post('create-submenu', 'Settings::createSubMenu');
 });
 $routes->get('menu','Menu::index');
+
 // Activity Routes
 $routes->get('about', 'PageController::about');
 $routes->get('contact', 'PageController::contact');
-$routes->get('profile', 'PageController::profile');
+// COMMENTED OUT OLD PROFILE ROUTE SO THE NEW ONE WORKS:
+// $routes->get('profile', 'PageController::profile');
 
 // 1. Show the student page
 $routes->get('students', 'StudentInfo::index');
@@ -58,3 +60,9 @@ $routes->get('student/edit/(:num)', 'StudentInfo::edit/$1');
 
 // 5. Handle the form submission to update the student
 $routes->post('student/update/(:num)', 'StudentInfo::update/$1');
+
+
+// === NEW EXAM PROFILE ROUTES ===
+$routes->get('profile', 'ProfileController::show');
+$routes->get('profile/edit', 'ProfileController::edit');
+$routes->post('profile/update', 'ProfileController::update');
