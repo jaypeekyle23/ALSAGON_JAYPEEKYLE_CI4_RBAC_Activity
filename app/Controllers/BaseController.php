@@ -25,19 +25,17 @@ abstract class BaseController extends Controller
         $this->segment          = service('uri');
         $this->validation       = \Config\Services::validation();
         $this->encrypter        = \Config\Services::encrypter();
-        $this->ApplicationModel = new ApplicationModel();
-
-        $user    = $this->ApplicationModel->getUser(username: session()->get('username'));
-        $segment = $this->segment->getSegment(1);
         
+        $this->ApplicationModel = new ApplicationModel();
+        $user = $this->ApplicationModel->getUser(username: session()->get('username'));
+        
+        $segment = $this->segment->getSegment(1);
         if ($segment) {
             $subsegment = $this->segment->getSegment(2);
         } else {
             $subsegment = '';
         }
 
-        // === THE FIX: Ensure we use the numeric role_id from the database ===
-        // If $user['role_id'] exists, use it. Otherwise, fall back to the session role.
         $role_id = isset($user['role_id']) ? $user['role_id'] : session()->get('role');
 
         $this->data = [

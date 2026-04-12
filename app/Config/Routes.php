@@ -90,3 +90,20 @@ $routes->group('admin', ['filter' => ['auth', 'admin']], static function ($route
     $routes->get('users', 'Admin\UserAdminController::index');
     $routes->post('users/assign-role/(:num)', 'Admin\UserAdminController::assignRole/$1');
 });
+
+// ==========================================
+// API v1 — token-authenticated JSON endpoints
+// ==========================================
+
+// Issue token — no auth filter needed here
+$routes->post('api/v1/auth/token', '\App\Controllers\Api\AuthController::issueToken');
+
+// Protected API routes
+$routes->group('api/v1', ['filter' => 'api_auth'], static function ($routes) {
+    // Auth
+    $routes->delete('auth/token', '\App\Controllers\Api\AuthController::revokeToken');
+
+    // Students resource
+    $routes->get('students',        '\App\Controllers\Api\StudentsController::index');
+    $routes->get('students/(:num)', '\App\Controllers\Api\StudentsController::show/$1');
+});

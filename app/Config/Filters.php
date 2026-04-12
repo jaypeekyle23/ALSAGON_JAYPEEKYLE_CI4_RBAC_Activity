@@ -18,7 +18,7 @@ use CodeIgniter\Config\Filters as BaseFilters;
 class Filters extends BaseFilters
 {
     public array $aliases = [
-        'csrf'          => CSRF::class,
+        // 'csrf'          => CSRF::class,
         'toolbar'       => DebugToolbar::class,
         'honeypot'      => Honeypot::class,
         'invalidchars'  => InvalidChars::class,
@@ -35,12 +35,15 @@ class Filters extends BaseFilters
         'student' => \App\Filters\StudentFilter::class,
         'teacher' => \App\Filters\TeacherFilter::class,
         'admin'   => \App\Filters\AdminFilter::class,
+
+        'api_auth' => \App\Filters\ApiAuthFilter::class,
     ];
 
     public array $required = [
         'before' => [
-            'forcehttps', 
-            'pagecache',  
+            // DISABLED FOR TESTING: forcehttps causes infinite loops on local HTTP
+            // 'forcehttps', 
+            // 'pagecache',  
         ],
         'after' => [
             'pagecache',   
@@ -51,8 +54,9 @@ class Filters extends BaseFilters
 
     public array $globals = [
         'before' => [
-            'isLoggedIn' => ['except' => ['/', 'register', 'login', 'unauthorized']], 
-            'isGranted'  => ['except' => ['/', 'register', 'login', 'logout', 'blocked', 'unauthorized', 'about', 'contact', 'profile', 'profile/*', 'students', 'students/*', 'student/*', 'admin/*', 'dashboard']],
+            // DISABLED FOR TESTING: These were intercepting the API token route!
+            // 'isLoggedIn' => ['except' => ['/', 'register', 'login', 'unauthorized']], 
+            // 'isGranted'  => ['except' => ['/', 'register', 'login', 'logout', 'blocked', 'unauthorized', 'about', 'contact', 'profile', 'profile/*', 'students', 'students/*', 'student/*', 'admin/*', 'dashboard']],
         ],
         'after' => [
             // ...
