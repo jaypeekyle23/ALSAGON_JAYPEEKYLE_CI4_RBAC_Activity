@@ -2,25 +2,25 @@
 
 namespace App\Controllers\Api;
 
-use CodeIgniter\Controller;
+use App\Models\ApiTokenModel;
 
-class AuthController extends Controller
+class AuthController extends BaseApiController
 {
+    /** Token lifetime in seconds (default: 24 h) */
+    private const TOKEN_TTL = 86400;
+
     /**
      * API Endpoint: POST /api/v1/auth/token
      * Authenticates a user and generates an API token.
      */
     public function issueToken()
     {
-        // 1. Grab the credentials sent from Postman (Postman sends 'email')
-        $email = $this->request->getVar('email');
+        // 1. Grab the credentials sent from Postman
+        $email    = $this->request->getVar('email');
         $password = $this->request->getVar('password');
 
         if (empty($email) || empty($password)) {
-            return $this->response->setStatusCode(400)->setJSON([
-                'status'  => 400,
-                'message' => 'Email and password are required'
-            ]);
+            return $this->badRequest('Email and password are required.');
         }
 
         // 2. Connect to the database and find the user
@@ -30,30 +30,35 @@ class AuthController extends Controller
         $user = $db->table('users')->where('username', $email)->get()->getRowArray();
 
         // 3. Verify the user exists and the password is correct
-        // (This checks both hashed passwords and plain-text passwords just in case)
         if (!$user || (!password_verify($password, $user['password']) && $password !== $user['password'])) {
             return $this->response->setStatusCode(401)->setJSON([
                 'status'  => 401,
-                'message' => 'Invalid email or password'
+                'message' => 'Invalid credentials.'
             ]);
         }
 
-        // 4. Generate a secure, random API token
-        $token = bin2hex(random_bytes(32));
+        // 4. Generate a cryptographically secure token and calculate expiration
+        $token     = bin2hex(random_bytes(32)); 
+        $expiresAt = date('Y-m-d H:i:s', time() + self::TOKEN_TTL);
 
-        // 5. Save the token to your database so it can be verified on future requests
-        $db->table('api_tokens')->insert([
-            'user_id'    => $user['id'] ?? $user['user_id'] ?? 0, 
+        // 5. Save the token to your database using the new ApiTokenModel
+        $tokenModel = new ApiTokenModel();
+        // Handle variations in primary key names just in case
+        $userId = $user['id'] ?? $user['user_id'] ?? 0;
+        
+        $tokenModel->createToken($userId, $token, $expiresAt);
+
+        // 6. Return the exact JSON structure the professor expects
+        return $this->created([
             'token'      => $token,
-            'created_at' => date('Y-m-d H:i:s')
-        ]);
-
-        // 6. Return the success response with the new token
-        return $this->response->setStatusCode(200)->setJSON([
-            'status'  => 200,
-            'message' => 'Authentication successful',
-            'token'   => $token
-        ]);
+            'token_type' => 'Bearer',
+            'expires_at' => $expiresAt,
+            'user'       => [
+                'id'    => $userId,
+                'name'  => $user['fullname'] ?? ($user['first_name'] . ' ' . $user['last_name']),
+                'email' => $user['username'],
+            ],
+        ], 'Token issued.');
     }
 
     /**
@@ -67,19 +72,14 @@ class AuthController extends Controller
         if (str_starts_with($authHeader, 'Bearer ')) {
             $token = trim(substr($authHeader, 7));
             
-            // Delete the token from the database
-            $db = \Config\Database::connect();
-            $db->table('api_tokens')->where('token', $token)->delete();
+            // Delete the token from the database using our new Model
+            $tokenModel = new ApiTokenModel();
+            $tokenModel->deleteByToken($token);
 
-            return $this->response->setStatusCode(200)->setJSON([
-                'status'  => 200, 
-                'message' => 'Token revoked successfully (Logged out)'
-            ]);
+            // Use the OK method from our BaseApiController
+            return $this->ok(null, 'Token revoked.');
         }
         
-        return $this->response->setStatusCode(400)->setJSON([
-            'status'  => 400,
-            'message' => 'Token not provided'
-        ]);
+        return $this->badRequest('Token not provided.');
     }
 }
